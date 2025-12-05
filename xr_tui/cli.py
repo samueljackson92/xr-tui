@@ -59,12 +59,21 @@ class XarrayTUI(App):
 
     def _add_var_node(self, parent_node: Tree, var: xr.DataArray) -> None:
         """Helper method to add a variable node to the tree."""
-        var_node = parent_node.add(f"{var.name}: {var.dims} {var.dtype} {var.nbytes}")
+        nbytes = self._convert_nbytes_to_readable(var.nbytes)
+        var_node = parent_node.add(f"{var.name}: {var.dims} {var.dtype} {nbytes}")
 
         num_attributes = len(var.attrs)
         attr_node = var_node.add(f"Attributes ({num_attributes})")
         for attr, value in var.attrs.items():
             attr_node.add_leaf(f"{attr}: {value}")
+
+    def _convert_nbytes_to_readable(self, nbytes: int) -> str:
+        """Convert bytes to a human-readable format."""
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
+            if nbytes < 1024:
+                return f"{nbytes:.2f} {unit}"
+            nbytes /= 1024
+        return f"{nbytes:.2f} PB"
 
     def action_expand_all(self) -> None:
         """An action to expand all tree nodes."""
