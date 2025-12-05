@@ -28,4 +28,4 @@ include = ["xr_tui*"]
 exclude = [".venv"]
 
 [project.scripts]
-toktagger = "xr_tui.cli:main"
+xr = "xr_tui.cli:main"
