@@ -26,11 +26,16 @@ dependencies = [
 where = ["."]
 include = ["xr_tui*"]
 
+[tool.setuptools.package-data]
+xr_tui = ["*.tcss"]
+
 [tool.ruff]
 exclude = [".venv"]
 
 [dependency-groups]
 dev = [
+    "pylint>=3.3.9",
+    "ruff>=0.14.8",
     "textual-dev>=1.8.0",
 ]
 

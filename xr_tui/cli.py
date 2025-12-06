@@ -276,33 +276,29 @@ class PlotScreen(Screen):
 
         return plot_widget
 
+    # pylint: disable-msg=too-many-locals
     def _plot_variable_nd(
         self, dim1: int = 0, dim2: int = 1, slice_positions: dict = None
     ) -> PlotextPlot:
         if slice_positions is None:
             slice_positions = {}
 
-        variable = self.variable
-
-        # Get all dimension names
-        dims = list(variable.dims)
-
         # Default to last two dimensions for x and y
-        y_dim_name = dims[dim1] if len(dims) >= 2 else dims[0]
-        x_dim_name = dims[dim2]
+        y_dim_name = self.variable.dims[dim1]
+        x_dim_name = self.variable.dims[dim2]
 
         # Get the indices for other dimensions (set to middle slice)
         slice_dict = {}
-        for dim in dims:
+        for dim in self.variable.dims:
             if dim not in [x_dim_name, y_dim_name]:
                 if dim in slice_positions:
                     slice_dict[dim] = slice_positions[dim]
                 else:
-                    dim_size = variable.sizes[dim]
+                    dim_size = self.variable.sizes[dim]
                     slice_dict[dim] = dim_size // 2
 
         # Slice the variable to get 2D data
-        sliced_var = variable.isel(slice_dict)
+        sliced_var = self.variable.isel(slice_dict)
 
         z = sliced_var.values
         z = np.nan_to_num(z, nan=0.0)
@@ -327,17 +323,21 @@ class PlotScreen(Screen):
             np.arange(len(y_coords)), labels=[f"{val:.4f}" for val in y_coords]
         )
 
-        xunit = sliced_var.coords[x_dim_name].attrs.get("units", "")
-        yunit = sliced_var.coords[y_dim_name].attrs.get("units", "")
+        unit = sliced_var.coords[y_dim_name].attrs.get("units", "")
+        label = f"{y_dim_name} ({unit})" if unit else y_dim_name
+        plot_widget.plt.xlabel(label)
 
-        xlabel = f"{x_dim_name} ({xunit})" if xunit else x_dim_name
-        ylabel = f"{y_dim_name} ({yunit})" if yunit else y_dim_name
-        plot_widget.plt.xlabel(xlabel)
-        plot_widget.plt.ylabel(ylabel)
+        unit = sliced_var.coords[x_dim_name].attrs.get("units", "")
+        label = f"{x_dim_name} ({unit})" if unit else x_dim_name
+        plot_widget.plt.ylabel(label)
 
         # Add info about sliced dimensions to title
         slice_info = ", ".join([f"{dim}={idx}" for dim, idx in slice_dict.items()])
-        title = f"{variable.name} ({slice_info})" if slice_info else f"{variable.name}"
+        title = (
+            f"{self.variable.name} ({slice_info})"
+            if slice_info
+            else f"{self.variable.name}"
+        )
         plot_widget.plt.title(title)
         return plot_widget
 
@@ -414,7 +414,8 @@ class XarrayTUI(App):
             num_coords = len(group.coords)
             label = f"Group: {group_name}" if group_name else "Root"
             group_node = parent_node.add(
-                f"{label} (Data Variables: [blue]{num_vars}[/blue], Coordinates: [blue]{num_coords}[/blue])"
+                f"{label} (Data Variables: [blue]{num_vars}[/blue]"
+                f" Coordinates: [blue]{num_coords}[/blue])"
             )
             group_node.expand()
 
@@ -523,6 +524,7 @@ class XarrayTUI(App):
 
 
 def main():
+    """Entry point for the xr-tui CLI."""
     parser = argparse.ArgumentParser(
         description="A Textual TUI for managing xarray Datasets."
     )
