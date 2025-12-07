@@ -14,6 +14,8 @@ from textual.widgets import DataTable, Footer, Header, RadioButton, RadioSet, Tr
 from textual_plotext import PlotextPlot
 from textual_slider import Slider
 
+from xr_tui.hdf_reader import hdf5_to_datatree
+
 
 class StatisticsScreen(Screen):
     """A screen to display statistics of a variable."""
@@ -358,17 +360,22 @@ class XarrayTUI(App):
         ("d", "toggle_dark", "Toggle dark mode"),
     ]
 
-    def __init__(self, file: str, **kwargs) -> None:
+    def __init__(self, file: str, group: str = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.title = "xr-tui"
         self.theme = "monokai"
+
         self.file = file
+        self.group = group
 
         self.file_info = self._get_file_info(file)
 
-        self.dataset = xr.open_datatree(
-            file, chunks=None, create_default_indexes=False, engine="zarr"
-        )
+        try:
+            dataset = xr.open_datatree(file, chunks=None, create_default_indexes=False)
+        except ValueError:
+            dataset = hdf5_to_datatree(file)
+
+        self.dataset = dataset
 
     def _get_file_info(self, file: str) -> None:
         """Get basic info about the file such as size and format."""
@@ -528,9 +535,15 @@ def main():
         description="A Textual TUI for managing xarray Datasets."
     )
     parser.add_argument("file", type=str, help="Path to the xarray Dataset file.")
+    parser.add_argument(
+        "--group",
+        type=str,
+        help="Path to a specific group within the dataset.",
+        default=None,
+    )
     args = parser.parse_args()
 
-    app = XarrayTUI(args.file)
+    app = XarrayTUI(args.file, group=args.group)
     app.run()
 
 
