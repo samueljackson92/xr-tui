@@ -1,7 +1,7 @@
 # xr-tui
 
 [![CI](https://github.com/samueljackson92/xr-tui/workflows/Lint/badge.svg)](https://github.com/samueljackson92/xr-tui/actions)
-[![GitHub stars](https://img.shields.io/github/stars/samueljackson92/xr-tui.svg)](https://github.com/samueljackson92/xr-tui/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/samueljackson92/xr-tui)](https://github.com/samueljackson92/xr-tui/stargazers)
 [![GitHubIssues](https://img.shields.io/badge/issue_tracking-github-blue.svg)](https://github.com/samueljackson92/xr-tui/issues)
 [![GitTutorial](https://img.shields.io/badge/PR-Welcome-%23FF8300.svg?)](https://github.com/samueljackson92/xr-tui/pulls)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
