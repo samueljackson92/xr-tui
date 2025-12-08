@@ -7,12 +7,12 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
-xr-tui is an interactive terminal user interface (TUI) for exploring and visualizing xarray Datasets and DataArrays. It leverages the power of xarray for handling multi-dimensional arrays and provides a user-friendly interface for data exploration directly in the terminal.
+xr-tui is an interactive terminal user interface (TUI) for exploring and visualizing multi-dimensional datasets. It uses xarray to support loading NetCDF, Zarr, and HDF5 tree structures, and provides a user-friendly interface for data exploration directly in the terminal.
 
 ![](demo.gif)
 
 ## Features
-- Interactive navigation through xarray Datasets and DataArrays.
+- Interactive navigation through NetCDF, Zarr, and HDF5 datasets.
 - Visualization of 1D and 2D data using plotext for terminal-based plotting.
 - Support for slicing multi-dimensional data.
 - Easy-to-use command-line interface.
