@@ -44,5 +44,19 @@ StatisticsScreen {
     background: $surface;
 }
 
-#plot-container {
+#plot-error-message {
+    text-align: center;
+}
+
+#plot-screen-error {
+    text-align: center;
+    align: center middle;
+    grid-size: 2;
+    grid-gutter: 1 2;
+    grid-rows: 1fr 3;
+    padding: 0 1;
+    width: 40%;
+    height: 20%;
+    border: thick red 80%;
+    background: $surface;
 }

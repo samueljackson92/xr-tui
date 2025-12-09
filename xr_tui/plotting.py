@@ -5,10 +5,28 @@ import xarray as xr
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import RadioButton, RadioSet
+from textual.widgets import RadioButton, RadioSet, Static
 from textual.widget import Widget
 from textual_slider import Slider
 from textual_plotext import PlotextPlot
+
+
+class ErrorWidget(Widget):
+    """A widget to display plot errors."""
+
+    def __init__(self, variable: xr.DataArray, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.variable = variable
+
+    def compose(self) -> ComposeResult:
+        """Render the error message."""
+        message = (
+            f"Cannot plot variable [bold]'{self.variable.name}'[/]"
+            f"with dtype [bold]{self.variable.dtype}[/]!\n"
+            "Plotting is only supported for numeric data types."
+        )
+        error_widget = Static(message, id="plot-error-message")
+        yield error_widget
 
 
 class Plot1DWidget(Widget):

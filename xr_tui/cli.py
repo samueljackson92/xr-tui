@@ -9,14 +9,9 @@ import xarray as xr
 from textual.app import App, ComposeResult
 from textual.containers import Grid
 from textual.screen import Screen
-from textual.widgets import (
-    DataTable,
-    Footer,
-    Header,
-    Tree,
-)
+from textual.widgets import DataTable, Footer, Header, Tree
 from textual_plotext import PlotextPlot
-from xr_tui.plotting import Plot1DWidget, Plot2DWidget, PlotNDWidget
+from xr_tui.plotting import Plot1DWidget, Plot2DWidget, PlotNDWidget, ErrorWidget
 from xr_tui.hdf_reader import hdf5_to_datatree
 
 
@@ -32,6 +27,15 @@ class StatisticsScreen(Screen):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the screen."""
+
+        if self.variable.dtype.kind in ("U", "S", "O"):
+            # String or object dtype - cannot compute statistics
+            plot_widget = ErrorWidget(self.variable, id="plot-screen-error")
+            plot_widget.border_title = f"[white]Statistics of {self.variable.name}[/]"
+            plot_widget.border_subtitle = "[white]Press 'Esc' to return[/]"
+            yield plot_widget
+            return
+
         stats = self._compute_statistics(self.variable)
         data = self.variable.values.flatten()
         data = data[~np.isnan(data)]  # Remove NaN values
@@ -51,6 +55,7 @@ class StatisticsScreen(Screen):
 
         modal = Grid(plot_widget, table, id="stats-container")
         modal.border_title = f"[white]Statistics for {self.variable.name}[/]"
+        modal.border_subtitle = "[white]Press 'Esc' to return[/]"
         yield modal
 
     def _compute_statistics(self, variable: xr.DataArray) -> dict:
@@ -99,6 +104,14 @@ class PlotScreen(Screen):
     def compose(self) -> ComposeResult:
         """Create child widgets for the screen."""
 
+        if self.variable.dtype.kind in ("U", "S", "O"):
+            # String or object dtype - cannot plot
+            plot_widget = ErrorWidget(self.variable, id="plot-screen-error")
+            plot_widget.border_title = f"[white]Plot of {self.variable.name}[/]"
+            plot_widget.border_subtitle = "[white]Press 'Esc' to return[/]"
+            yield plot_widget
+            return
+
         if len(self.variable.dims) == 1:
             plot_widget = Plot1DWidget(self.variable, id="plot-screen")
         elif len(self.variable.dims) == 2:
@@ -107,6 +120,7 @@ class PlotScreen(Screen):
             plot_widget = PlotNDWidget(self.variable, id="plot-screen")
 
         plot_widget.border_title = f"[white]Plot of {self.variable.name}[/]"
+        plot_widget.border_subtitle = "[white]Press 'Esc' to return[/]"
         yield plot_widget
 
 
@@ -124,6 +138,10 @@ class XarrayTUI(App):
         ("p", "plot_variable", "Plot variable"),
         ("s", "show_statistics", "Show statistics"),
         ("d", "toggle_dark", "Toggle dark mode"),
+        ("j", "cursor_down", "Move down"),
+        ("k", "cursor_up", "Move up"),
+        ("h", "cursor_left", "Collapse node"),
+        ("l", "cursor_right", "Expand node"),
     ]
 
     def __init__(self, file: str, group: str = None, **kwargs) -> None:
@@ -293,6 +311,28 @@ class XarrayTUI(App):
         self.theme = (
             "textual-dark" if self.theme == "textual-light" else "textual-light"
         )
+
+    def action_cursor_down(self) -> None:
+        """Move cursor down in the tree (vim j key)."""
+        tree = self.query_one(Tree)
+        tree.action_cursor_down()
+
+    def action_cursor_up(self) -> None:
+        """Move cursor up in the tree (vim k key)."""
+        tree = self.query_one(Tree)
+        tree.action_cursor_up()
+
+    def action_cursor_left(self) -> None:
+        """Collapse current node in the tree (vim h key)."""
+        tree = self.query_one(Tree)
+        if tree.cursor_node and tree.cursor_node.allow_expand:
+            tree.cursor_node.collapse()
+
+    def action_cursor_right(self) -> None:
+        """Expand current node in the tree (vim l key)."""
+        tree = self.query_one(Tree)
+        if tree.cursor_node and tree.cursor_node.allow_expand:
+            tree.cursor_node.expand()
 
 
 def main():
