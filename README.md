@@ -14,7 +14,7 @@ xr-tui is an interactive terminal user interface (TUI) for exploring and visuali
 ![](demo.gif)
 
 ## Features
-- Interactive navigation through NetCDF, Zarr, and HDF5 datasets.
+- Interactive navigation through NetCDF, Zarr, [NeXus](https://www.nexusformat.org/) and HDF5 datasets.
 - Visualization of 1D and 2D data using plotext for terminal-based plotting.
 - Support for slicing multi-dimensional data.
 - Easy-to-use command-line interface.
