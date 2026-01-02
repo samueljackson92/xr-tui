@@ -161,7 +161,7 @@ class XarrayTUI(App):
 
     def _init_single_file(self, path: Path) -> None:
         """Load single file xarray or HDF5 datatree"""
-        self.file = str(path)
+        self.file = str(Path(path).resolve())
         self.file_info = self._get_file_info(self.file)
 
         try:
