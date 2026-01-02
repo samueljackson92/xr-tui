@@ -3,30 +3,31 @@ name = "xr-tui"
 version = "2025.1.0"
 requires-python = ">=3.11"
 description = "A Textual User Interface (TUI) for exploring xarray Datasets."
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 authors = [
-  {name = "Samuel Jackson", email = "samuel.jackson@outlook.com"}
+  { name = "Samuel Jackson", email = "samuel.jackson@outlook.com" },
+  { name = "Joel Adams", email = "joel.adams@york.ac.uk" },
 ]
 
 maintainers = [
-  {name = "Samuel Jackson", email = "samuel.jackson@outlook.com"}
+  { name = "Samuel Jackson", email = "samuel.jackson@outlook.com" },
 ]
 
 readme = "README.md"
 classifiers = [
   "Development Status :: 4 - Beta",
-  "Programming Language :: Python"
+  "Programming Language :: Python",
 ]
 
 dependencies = [
-    "fsspec[s3]>=2025.10.0",
-    "scipy>=1.13.1",
-    "textual>=6.7.1",
-    "textual-plotext>=1.0.1",
-    "textual-slider>=0.2.0",
-    "xarray[io]>=2024.7.0",
-    "zarr>=2.18.2",
+  "fsspec[s3]>=2025.10.0",
+  "scipy>=1.13.1",
+  "textual>=6.7.1",
+  "textual-plotext>=1.0.1",
+  "textual-slider>=0.2.0",
+  "xarray[io]>=2024.7.0",
+  "zarr>=2.18.2",
 ]
 
 [tool.setuptools.packages.find]
@@ -41,10 +42,10 @@ exclude = [".venv"]
 
 [dependency-groups]
 dev = [
-    "bump-my-version>=1.2.4",
-    "pylint>=3.3.9",
-    "ruff>=0.14.8",
-    "textual-dev>=1.8.0",
+  "bump-my-version>=1.2.4",
+  "pylint>=3.3.9",
+  "ruff>=0.14.8",
+  "textual-dev>=1.8.0",
 ]
 
 [project.scripts]

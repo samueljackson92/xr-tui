@@ -9,12 +9,12 @@
 ![PyPI - Status](https://img.shields.io/pypi/v/xr-tui)
 
 
-xr-tui is an interactive terminal user interface (TUI) for exploring and visualizing multi-dimensional datasets. It uses xarray to support loading NetCDF, Zarr, and HDF5 tree structures, and provides a user-friendly interface for data exploration directly in the terminal.
+xr-tui is an interactive terminal user interface (TUI) for exploring and visualizing multi-dimensional datasets. It uses xarray to support loading NetCDF, Zarr, HDF5 and [EPOCH SDF](https://epochpic.github.io/) tree structures, and provides a user-friendly interface for data exploration directly in the terminal.
 
 ![](demo.gif)
 
 ## Features
-- Interactive navigation through NetCDF, Zarr, [NeXus](https://www.nexusformat.org/) and HDF5 datasets.
+- Interactive navigation through NetCDF, Zarr, [NeXus](https://www.nexusformat.org/), HDF5 and [EPOCH SDF](https://epochpic.github.io/) datasets.
 - Visualization of 1D and 2D data using plotext for terminal-based plotting.
 - Support for slicing multi-dimensional data.
 - Easy-to-use command-line interface.
@@ -34,6 +34,10 @@ Or as a uv tool:
 uv tool install xr-tui
 ```
 
+
+If you wish to use this with [EPOCH SDF](https://epochpic.github.io/) files,
+please consult the [sdf-xarray documentation #visualisation-on-hpcs](https://sdf-xarray.readthedocs.io/en/stable/key_functionality.html#visualisation-on-hpcs)
+
 ## Usage
 To start xr-tui, simply run the following command in your terminal:
 
@@ -43,7 +47,7 @@ xr data.nc
 
 This will launch the TUI, allowing you to explore the contents of `data.nc`.
 
-xr-tui supports various file formats compatible with xarray, including NetCDF, Zarr, and HDF5.
+xr-tui supports various file formats compatible with xarray, including NetCDF, Zarr, HDF5 and EPOCH SDF.
 
 You can also specify a particular group within a file to load:
 
@@ -56,7 +60,6 @@ xr-tui also works with remote datasets accessible via HTTP:
 ```bash
 xr http://example.com/data.zarr
 ```
-
 
 ## Key Command Reference
 
