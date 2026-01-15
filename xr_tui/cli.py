@@ -3,6 +3,8 @@
 import argparse
 import os
 import time
+from typing import Optional
+from urllib.parse import urlparse
 
 import numpy as np
 import xarray as xr
@@ -11,15 +13,15 @@ from textual.containers import Grid
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Tree
 from textual_plotext import PlotextPlot
-from xr_tui.plotting import Plot1DWidget, Plot2DWidget, PlotNDWidget, ErrorWidget
-from xr_tui.hdf_reader import hdf5_to_datatree
 
-from urllib.parse import urlparse
+from xr_tui.hdf_reader import hdf5_to_datatree
+from xr_tui.plotting import ErrorWidget, Plot1DWidget, Plot2DWidget, PlotNDWidget
 
 
 def is_remote_uri(path: str) -> bool:
+    """Check if a given path is a remote URI."""
     parsed = urlparse(path)
-    return parsed.scheme != "" and parsed.scheme != "file"
+    return parsed.scheme not in ("", "file")
 
 
 class StatisticsScreen(Screen):
@@ -152,7 +154,11 @@ class XarrayTUI(App):
     ]
 
     def __init__(
-        self, file: str, group: str = None, engine: str = None, **kwargs
+        self,
+        file: str,
+        group: Optional[str] = None,
+        engine: Optional[str] = None,
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.title = "xr-tui"
@@ -160,7 +166,7 @@ class XarrayTUI(App):
 
         self.file = file
         self.group = group
-
+        self.engine = engine
         self.file_info = self._get_file_info(file)
 
         try:
