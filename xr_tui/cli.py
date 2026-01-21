@@ -196,7 +196,7 @@ class XarrayTUI(App):
 
         self.file_glob = f"*{file_suffixes[0]}"
         self.file = f"{parent_dirs[0]}/{self.file_glob}"
-        self.file_info = [self._get_file_info(path) for path in paths]
+        self.file_info = [self._get_file_info(str(path)) for path in paths]
 
         if self.file_glob.lower() == "*.sdf":
             import sdf_xarray as sdfxr
