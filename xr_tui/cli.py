@@ -232,7 +232,9 @@ class XarrayTUI(App):
         for key, value in self.file_info.items():
             file_info_node.add_leaf(f"[yellow]{key}[/]: {value}")
 
-        def add_dataset_attributes_recursively(parent_node: Tree, attributes: dict):
+        def add_dataset_attributes_recursively(
+            parent_node: Tree, attributes: dict
+        ) -> None:
             """Recursively add global attributes to File Information node."""
             for key, value in attributes.items():
                 if isinstance(value, Mapping):
@@ -242,7 +244,9 @@ class XarrayTUI(App):
                     parent_node.add_leaf(f"[yellow]{key}[/yellow]: {value}")
 
         num_attributes = len(self.dataset.attrs)
-        attributes_node = file_info_node.add(f"Attributes ([blue]{num_attributes}[/blue])")
+        attributes_node = file_info_node.add(
+            f"Attributes ([blue]{num_attributes}[/blue])"
+        )
         add_dataset_attributes_recursively(attributes_node, self.dataset.attrs)
 
         def add_group_node(parent_node: Tree, group, group_name: str = "") -> None:
@@ -318,7 +322,10 @@ class XarrayTUI(App):
         if current_node is None:
             return
 
-        if current_node.data is None or current_node.data.get("type") != "variable_node":
+        if (
+            current_node.data is None
+            or current_node.data.get("type") != "variable_node"
+        ):
             return
 
         self.push_screen(PlotScreen(current_node.data["item"]))
@@ -330,7 +337,10 @@ class XarrayTUI(App):
         if current_node is None:
             return
 
-        if current_node.data is None or current_node.data.get("type") != "variable_node":
+        if (
+            current_node.data is None
+            or current_node.data.get("type") != "variable_node"
+        ):
             return
 
         self.push_screen(StatisticsScreen(current_node.data["item"]))
@@ -349,7 +359,9 @@ class XarrayTUI(App):
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
-        self.theme = "textual-dark" if self.theme == "textual-light" else "textual-light"
+        self.theme = (
+            "textual-dark" if self.theme == "textual-light" else "textual-light"
+        )
 
     def action_cursor_down(self) -> None:
         """Move cursor down in the tree (vim j key)."""
@@ -376,7 +388,9 @@ class XarrayTUI(App):
 
 def main():
     """Entry point for the xr-tui CLI."""
-    parser = argparse.ArgumentParser(description="A Textual TUI for managing xarray Datasets.")
+    parser = argparse.ArgumentParser(
+        description="A Textual TUI for managing xarray Datasets."
+    )
     parser.add_argument("file", type=str, help="Path to the xarray Dataset file.")
     parser.add_argument(
         "--group",
