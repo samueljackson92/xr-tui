@@ -41,6 +41,9 @@ xr_tui = ["*.tcss"]
 [tool.ruff]
 exclude = [".venv"]
 
+[tool.pylint.design]
+max-attributes = 10
+
 [dependency-groups]
 dev = [
     "bump-my-version>=1.2.4",
