@@ -3,20 +3,18 @@ name = "xr-tui"
 version = "0.1.0"
 requires-python = ">=3.11"
 description = "A Textual User Interface (TUI) for exploring xarray Datasets."
-license = {text = "MIT"}
+license = { text = "MIT" }
 
-authors = [
-  {name = "Samuel Jackson", email = "samuel.jackson@outlook.com"}
-]
+authors = [{ name = "Samuel Jackson", email = "samuel.jackson@outlook.com" }]
 
 maintainers = [
-  {name = "Samuel Jackson", email = "samuel.jackson@outlook.com"}
+    { name = "Samuel Jackson", email = "samuel.jackson@outlook.com" },
 ]
 
 readme = "README.md"
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Programming Language :: Python"
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
 ]
 
 dependencies = [
@@ -43,7 +41,6 @@ exclude = [".venv"]
 [dependency-groups]
 dev = [
     "bump-my-version>=1.2.4",
-    "pylint>=3.3.9",
     "ruff>=0.14.8",
     "textual-dev>=1.8.0",
     "ty>=0.0.12",
