@@ -1,6 +1,7 @@
 """A Textual TUI for exploring netcdf and zarr datasets."""
 
 import argparse
+import json
 import multiprocessing as mp
 import os
 import time
@@ -28,6 +29,96 @@ def is_remote_uri(path: str) -> bool:
     """Check if a given path is a remote URI."""
     parsed = urlparse(path)
     return parsed.scheme not in ("", "file")
+
+
+def _convert_nbytes_to_readable(nbytes: int) -> str:
+    """Convert bytes to a human-readable format."""
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if nbytes < 1024:
+            return f"{nbytes:.2f} {unit}"
+        nbytes /= 1024
+    return f"{nbytes:.2f} PB"
+
+
+def _get_file_info(file: str) -> dict:
+    """Get basic info about the file such as size and format."""
+    if is_remote_uri(file):
+        _, file_type = os.path.splitext(file)
+        file_type = file_type.lower() if file_type else "N/A (remote file)"
+        return {
+            "File Size": "N/A (remote file)",
+            "File Type": file_type,
+            "Permissions": "N/A (remote file)",
+            "Created Time": "N/A (remote file)",
+            "Modified Time": "N/A (remote file)",
+        }
+
+    if os.path.isdir(file):
+        file_size = sum(
+            os.path.getsize(os.path.join(dirpath, filename))
+            for dirpath, dirnames, filenames in os.walk(file)
+            for filename in filenames
+        )
+    else:
+        file_size = os.path.getsize(file)
+
+    file_type = "Directory" if os.path.isdir(file) else os.path.splitext(file)[1].lower()
+    permissions = oct(os.stat(file).st_mode)[-3:]
+    return {
+        "File Size": _convert_nbytes_to_readable(file_size),
+        "File Type": file_type,
+        "Permissions": permissions,
+        "Created Time": time.ctime(os.path.getctime(file)),
+        "Modified Time": time.ctime(os.path.getmtime(file)),
+    }
+
+
+class _NumpyEncoder(json.JSONEncoder):
+    """JSON encoder that handles numpy scalar and array types found in xarray attrs."""
+
+    def default(self, o):
+        if isinstance(o, np.integer):
+            return int(o)
+        if isinstance(o, np.floating):
+            return float(o)
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        if isinstance(o, np.bool_):
+            return bool(o)
+        return str(o)
+
+
+def _group_to_dict(group: xr.DataTree) -> dict:
+    """Recursively convert a DataTree group to a JSON-serialisable structure dict."""
+    dims = {name: int(size) for name, size in group.dims.items()}
+
+    coords = {}
+    for name in group.coords:
+        var = group.coords[name]
+        coords[name] = {
+            "dims": list(var.dims),
+            "dtype": str(var.dtype),
+            "size": _convert_nbytes_to_readable(var.nbytes),
+            "attributes": dict(var.attrs),
+        }
+
+    data_vars = {}
+    for name in group.data_vars:
+        var = group.data_vars[name]
+        data_vars[name] = {
+            "dims": list(var.dims),
+            "dtype": str(var.dtype),
+            "size": _convert_nbytes_to_readable(var.nbytes),
+            "attributes": dict(var.attrs),
+        }
+
+    return {
+        "attributes": dict(group.attrs),
+        "dimensions": dims,
+        "coordinates": coords,
+        "data_variables": data_vars,
+        "groups": {child: _group_to_dict(group[child]) for child in group.children},
+    }
 
 
 class StatisticsScreen(Screen):
@@ -182,7 +273,7 @@ class XarrayTUI(App):
     def _init_single_file(self, path: Path) -> None:
         """Load single file xarray or HDF5 datatree"""
         self.file = str(Path(path).resolve())
-        self.file_info = self._get_file_info(self.file)
+        self.file_info = _get_file_info(self.file)
 
         try:
             self.dataset = xr.open_datatree(
@@ -201,7 +292,7 @@ class XarrayTUI(App):
 
         self.file_glob = f"*{file_suffixes[0]}"
         self.file = f"{parent_dirs[0]}/{self.file_glob}"
-        self.file_info = [self._get_file_info(str(path)) for path in paths]
+        self.file_info = [_get_file_info(str(path)) for path in paths]
 
         plugins = entry_points(group="xr_tui.backends")
         plugins_dict = {p.name: p for p in plugins}
@@ -219,45 +310,6 @@ class XarrayTUI(App):
                 "pipx install xr-tui & pipx inject xr-tui <package-name>"
             )
 
-    def _get_file_info(self, file: str) -> dict:
-        """Get basic info about the file such as size and format."""
-
-        if is_remote_uri(file):
-            _, file_type = os.path.splitext(file)
-            file_type = file_type.lower() if file_type else "N/A (remote file)"
-            return {
-                "File Size": "N/A (remote file)",
-                "File Type": file_type,
-                "Permissions": "N/A (remote file)",
-                "Created Time": "N/A (remote file)",
-                "Modified Time": "N/A (remote file)",
-            }
-
-        if os.path.isdir(file):
-            file_size = sum(
-                os.path.getsize(os.path.join(dirpath, filename))
-                for dirpath, dirnames, filenames in os.walk(file)
-                for filename in filenames
-            )
-        else:
-            file_size = os.path.getsize(file)
-
-        if os.path.isdir(file):
-            file_type = "Directory"
-        else:
-            file_type = os.path.splitext(file)[1].lower()
-
-        permissions = oct(os.stat(file).st_mode)[-3:]
-        created_time = time.ctime(os.path.getctime(file))
-        modified_time = time.ctime(os.path.getmtime(file))
-        return {
-            "File Size": self._convert_nbytes_to_readable(file_size),
-            "File Type": file_type,
-            "Permissions": permissions,
-            "Created Time": created_time,
-            "Modified Time": modified_time,
-        }
-
     def _get_file_summary_info(self, paths: list[Path], file_glob: str) -> dict:
         """Get summary information about the files"""
         total_file_size = sum(os.path.getsize(file) for file in paths)
@@ -266,7 +318,7 @@ class XarrayTUI(App):
         return {
             "File Glob": file_glob,
             "Total Files Loaded": len(paths),
-            "Total Files Size": self._convert_nbytes_to_readable(total_file_size),
+            "Total Files Size": _convert_nbytes_to_readable(total_file_size),
             "First File Created": first_created_time,
             "Last File Created": last_created_time,
         }
@@ -365,7 +417,7 @@ class XarrayTUI(App):
 
     def _add_var_node(self, parent_node: Tree, var: xr.DataArray) -> None:
         """Helper method to add a variable node to the tree."""
-        nbytes = self._convert_nbytes_to_readable(var.nbytes)
+        nbytes = _convert_nbytes_to_readable(var.nbytes)
         var_node = parent_node.add(
             f"{var.name}: [red]{var.dims}[/] [green]{var.dtype}[/] [blue]{nbytes}[/]",
         )
@@ -374,14 +426,6 @@ class XarrayTUI(App):
         num_attributes = len(var.attrs)
         attr_node = var_node.add(f"Attributes ([blue]{num_attributes}[/blue])")
         self._add_leaf_items(attr_node, var.attrs)
-
-    def _convert_nbytes_to_readable(self, nbytes: int) -> str:
-        """Convert bytes to a human-readable format."""
-        for unit in ["B", "KB", "MB", "GB", "TB"]:
-            if nbytes < 1024:
-                return f"{nbytes:.2f} {unit}"
-            nbytes /= 1024
-        return f"{nbytes:.2f} PB"
 
     def action_plot_variable(self) -> None:
         """An action to plot the currently selected variable."""
@@ -477,7 +521,59 @@ def main():
         help="The xarray engine to use for opening the dataset.",
         default=None,
     )
+    parser.add_argument(
+        "--export-json",
+        nargs="?",
+        const=True,
+        default=None,
+        metavar="FILE",
+        help="Export dataset structure to JSON and exit. Writes to FILE or stdout if omitted.",
+    )
     args = parser.parse_args()
+
+    if args.export_json is not None:
+        paths = [Path(p).resolve() for p in args.path_list]
+
+        if len(paths) == 1:
+            file_info = {"file_info": _get_file_info(str(paths[0]))}
+            try:
+                dataset = xr.open_datatree(
+                    paths[0], chunks=None, create_default_indexes=False, engine=args.engine
+                )
+            except ValueError:
+                dataset = hdf5_to_datatree(paths[0])
+        else:
+            parent_dirs = list({p.parent for p in paths})
+            file_suffixes = list({p.suffix for p in paths})
+            if len(parent_dirs) > 1 or len(file_suffixes) > 1:
+                raise ValueError("All files must share the same directory and extension.")
+            file_glob = f"*{file_suffixes[0]}"
+            summary = {
+                "File Glob": file_glob,
+                "Total Files Loaded": len(paths),
+                "Total Files Size": _convert_nbytes_to_readable(
+                    sum(os.path.getsize(p) for p in paths)
+                ),
+                "First File Created": time.ctime(os.path.getctime(paths[0])),
+                "Last File Created": time.ctime(os.path.getctime(paths[-1])),
+            }
+            per_file = {p.name: _get_file_info(str(p)) for p in paths}
+            file_info = {"file_info": {"summary": summary, "files": per_file}}
+
+            plugins = entry_points(group="xr_tui.backends")
+            plugin = {p.name: p for p in plugins}.get(file_glob.lower())
+            if not plugin:
+                raise NotImplementedError(f"No backend found for '{file_glob}'")
+            dataset = plugin.load().open_mfdatatree(None, paths)
+
+        output = {**file_info, "dataset": _group_to_dict(dataset)}
+        json_str = json.dumps(output, indent=2, cls=_NumpyEncoder)
+
+        if args.export_json is True:
+            print(json_str)
+        else:
+            Path(args.export_json).write_text(json_str, encoding="utf-8")
+        return
 
     app = XarrayTUI(args.path_list, group=args.group, engine=args.engine)
     app.run()
