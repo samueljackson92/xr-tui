@@ -19,7 +19,7 @@ from textual.widgets import DataTable, Footer, Header, Tree
 from textual_plotext import PlotextPlot
 
 from xr_tui.hdf_reader import hdf5_to_datatree
-from xr_tui.plotting import ErrorWidget, Plot1DWidget, Plot2DWidget, PlotNDWidget
+from xr_tui.plotting import ErrorWidget, Plot1DWidget, Plot2DWidget, PlotNDWidget, TableNDWidget
 
 mp.set_start_method("fork")
 
@@ -139,6 +139,26 @@ class PlotScreen(Screen):
         yield plot_widget
 
 
+class TableScreen(Screen):
+    """A screen to display a variable's values as a navigable table."""
+
+    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+
+    def __init__(self, variable: xr.DataArray, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.variable = variable
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the screen."""
+        if self.variable.ndim == 0:
+            widget = ErrorWidget(self.variable, id="table-screen-error")
+        else:
+            widget = TableNDWidget(self.variable, id="table-screen")
+        widget.border_title = f"[white]Table of {self.variable.name}[/]"
+        widget.border_subtitle = "[white]Press 'Esc' to return[/]"
+        yield widget
+
+
 class XarrayTUI(App):
     """A Textual app to view xarray Datasets."""
 
@@ -152,6 +172,7 @@ class XarrayTUI(App):
         ("c", "collapse_all", "Collapse all nodes"),
         ("p", "plot_variable", "Plot variable"),
         ("s", "show_statistics", "Show statistics"),
+        ("t", "show_table", "Show table"),
         ("d", "toggle_dark", "Toggle dark mode"),
         ("j", "cursor_down", "Move down"),
         ("k", "cursor_up", "Move up"),
@@ -412,6 +433,21 @@ class XarrayTUI(App):
             return
 
         self.push_screen(StatisticsScreen(current_node.data["item"]))
+
+    def action_show_table(self) -> None:
+        """An action to show the selected variable's values as a table."""
+        tree = self.query_one(Tree)
+        current_node = tree.cursor_node
+        if current_node is None:
+            return
+
+        if (
+            current_node.data is None
+            or current_node.data.get("type") != "variable_node"
+        ):
+            return
+
+        self.push_screen(TableScreen(current_node.data["item"]))
 
     def action_expand_all(self) -> None:
         """An action to expand all tree nodes."""

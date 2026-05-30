@@ -60,3 +60,40 @@ StatisticsScreen {
     border: thick red 80%;
     background: $surface;
 }
+
+TableScreen {
+    align: center middle;
+    background: rgba(0, 0, 0, 0);
+}
+
+#table-screen {
+    padding: 0 1;
+    width: 90%;
+    height: 90%;
+    border: thick $background 80%;
+    background: $surface;
+}
+
+#table-container {
+    height: 100%;
+    width: 100%;
+}
+
+#table-truncation-warning {
+    height: 1;
+    text-align: center;
+}
+
+#table-dim-controls {
+    height: auto;
+    max-height: 8;
+}
+
+#table-slice-container {
+    height: auto;
+    max-height: 4;
+}
+
+#data-table {
+    height: 1fr;
+}

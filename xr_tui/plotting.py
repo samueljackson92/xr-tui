@@ -6,7 +6,7 @@ from textual import on
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
-from textual.widgets import RadioButton, RadioSet, Static
+from textual.widgets import DataTable, RadioButton, RadioSet, Static
 from textual_plotext import PlotextPlot
 from textual_slider import Slider
 
@@ -233,7 +233,7 @@ class PlotNDWidget(Widget):
         await plot_container.mount(slice_inputs)
         await plot_container.mount(new_plot)
 
-    # pylint: disable-msg=too-many-locals
+    # pylint: disable=too-many-locals
     def _plot_variable_nd(
         self, dim1: int = 0, dim2: int = 1, slice_positions: dict = None
     ) -> PlotextPlot:
@@ -299,3 +299,179 @@ class PlotNDWidget(Widget):
         )
         plot_widget.plt.title(title)
         return plot_widget
+
+
+MAX_TABLE_ROWS = 500
+MAX_TABLE_COLS = 200
+
+
+class TableNDWidget(Widget):
+    """A widget to display 1D/2D/ND variables as a navigable table."""
+
+    def __init__(self, variable: xr.DataArray, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.variable = variable
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets."""
+        dims = list(self.variable.dims)
+        ndim = len(dims)
+
+        contents = [Static("", id="table-truncation-warning")]
+
+        if ndim > 2:
+            dim1, dim2 = 0, 1
+
+            r1_buttons = [
+                RadioButton(dim, value=i == dim1, disabled=i == dim2)
+                for i, dim in enumerate(dims)
+            ]
+            r2_buttons = [
+                RadioButton(dim, value=i == dim2, disabled=i == dim1)
+                for i, dim in enumerate(dims)
+            ]
+
+            r1 = RadioSet(*r1_buttons, id="row-dim-select")
+            r1.border_title = "[white]Row Dimension[/]"
+            r2 = RadioSet(*r2_buttons, id="col-dim-select")
+            r2.border_title = "[white]Column Dimension[/]"
+
+            contents.append(Horizontal(r1, r2, id="table-dim-controls"))
+            contents.append(self._create_slice_sliders(dim1, dim2))
+
+        contents.append(DataTable(id="data-table", cursor_type="cell"))
+        yield Vertical(*contents, id="table-container")
+
+    def on_mount(self) -> None:
+        """Populate the table and focus it when the widget mounts."""
+        self._populate_table()
+        self.query_one(DataTable).focus()
+
+    def _create_slice_sliders(self, dim1: int = 0, dim2: int = 1) -> Horizontal:
+        """Build a Horizontal container of Sliders for all dims except dim1/dim2."""
+        dims = list(self.variable.dims)
+        sliders = []
+        for dim in dims:
+            if dim not in [dims[dim1], dims[dim2]]:
+                size = self.variable.sizes[dim]
+                s = Slider(0, size - 1, step=1, value=size // 2, id=f"slice-{dim}", name=dim)
+                s.border_title = f"[white]Slice: {dim}[/]"
+                sliders.append(s)
+        return Horizontal(*sliders, id="table-slice-container")
+
+    def _get_selected_dim(self, radio_set: RadioSet) -> int:
+        """Return the index of the currently selected RadioButton in a RadioSet."""
+        for i, radio in enumerate(radio_set.children):
+            if isinstance(radio, RadioButton) and radio.value:
+                return i
+        return 0
+
+    @on(Slider.Changed)
+    async def on_slider_changed(self, _event: Slider.Changed) -> None:
+        """Refresh the table when a slice slider moves."""
+        self._populate_table()
+
+    async def on_radio_set_changed(self, _message: RadioSet.Changed) -> None:
+        """Update disabled states, rebuild sliders, and refresh table on axis change."""
+        dim1_group = self.query_one("#row-dim-select")
+        dim2_group = self.query_one("#col-dim-select")
+
+        dim1 = self._get_selected_dim(dim1_group)
+        dim2 = self._get_selected_dim(dim2_group)
+
+        for i, radio in enumerate(dim1_group.children):
+            if isinstance(radio, RadioButton):
+                radio.disabled = i == dim2
+
+        for i, radio in enumerate(dim2_group.children):
+            if isinstance(radio, RadioButton):
+                radio.disabled = i == dim1
+
+        dim1_group.refresh()
+        dim2_group.refresh()
+
+        new_sliders = self._create_slice_sliders(dim1, dim2)
+        await self.query_one("#table-slice-container").remove()
+        await self.query_one("#table-container").mount(
+            new_sliders, before=self.query_one(DataTable)
+        )
+
+        self._populate_table()
+
+    # pylint: disable=too-many-locals
+    def _populate_table(self) -> None:
+        table = self.query_one(DataTable)
+        table.clear(columns=True)
+
+        dims = list(self.variable.dims)
+        ndim = len(dims)
+
+        if ndim == 1:
+            dim = dims[0]
+            values = self.variable.values
+            display = min(len(values), MAX_TABLE_ROWS)
+            self._set_truncation_warning(len(values), 1, display, 1)
+            table.add_column(dim, key="index")
+            table.add_column(str(self.variable.name or "value"), key="value")
+            coord = self.variable.coords.get(dim)
+            for i in range(display):
+                row_label = format_coord_value(coord.values[i]) if coord is not None else str(i)
+                table.add_row(row_label, self._fmt(values[i]))
+            return
+
+        if ndim > 2:
+            dim1 = self._get_selected_dim(self.query_one("#row-dim-select"))
+            dim2 = self._get_selected_dim(self.query_one("#col-dim-select"))
+        else:
+            dim1, dim2 = 0, 1
+
+        row_dim = dims[dim1]
+        col_dim = dims[dim2]
+
+        slice_dict = {}
+        for i, dim in enumerate(dims):
+            if i in (dim1, dim2):
+                continue
+            slice_dict[dim] = int(self.query_one(f"#slice-{dim}", Slider).value)
+
+        sliced = self.variable.isel(slice_dict).transpose(row_dim, col_dim)
+        data_2d = sliced.values
+
+        n_rows, n_cols = data_2d.shape
+        display_rows = min(n_rows, MAX_TABLE_ROWS)
+        display_cols = min(n_cols, MAX_TABLE_COLS)
+        self._set_truncation_warning(n_rows, n_cols, display_rows, display_cols)
+
+        row_coord = self.variable.coords.get(row_dim)
+        col_coord = self.variable.coords.get(col_dim)
+
+        table.add_column(row_dim, key="row_index")
+        for j in range(display_cols):
+            label = format_coord_value(col_coord.values[j]) if col_coord is not None else str(j)
+            table.add_column(label, key=f"col_{j}")
+
+        for i in range(display_rows):
+            row_label = format_coord_value(row_coord.values[i]) if row_coord is not None else str(i)
+            table.add_row(row_label, *[self._fmt(data_2d[i, j]) for j in range(display_cols)])
+
+    def _fmt(self, val) -> str:
+        try:
+            f = float(val)
+            if np.isnan(f):
+                return "NaN"
+            if np.isinf(f):
+                return "Inf" if f > 0 else "-Inf"
+            return f"{f:.4g}"
+        except (TypeError, ValueError):
+            return str(val)
+
+    def _set_truncation_warning(
+        self, n_rows: int, n_cols: int, d_rows: int, d_cols: int
+    ) -> None:
+        w = self.query_one("#table-truncation-warning", Static)
+        if d_rows < n_rows or d_cols < n_cols:
+            w.update(
+                f"[yellow]Showing {d_rows} of {n_rows} rows × {d_cols} of {n_cols} cols[/]"
+            )
+        else:
+            w.update("")
