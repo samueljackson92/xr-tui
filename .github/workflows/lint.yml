@@ -3,40 +3,30 @@ name: Lint
 on:
   push:
     branches: [ main ]
+    paths:
+      - '**.py'
   pull_request:
     branches: [ main ]
+    paths:
+      - '**.py'
 
 jobs:
-  ruff:
+  lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install ruff
-      run: pip install ruff>=0.14.8
-    
-    - name: Run ruff
-      run: ruff check .
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  pylint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        pip install pylint>=3.3.9
-        pip install -e .
-    
-    - name: Run pylint
-      run: pylint xr_tui
+      # Providing 'args' prevents the action from running 'ruff check .'
+      # immediately after installing ruff.
+      - name: Install Ruff
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "--version"
+
+      - name: Check
+        run: ruff check --output-format=github src tests
+
+      - name: Format
+        run: ruff format --check --diff src tests

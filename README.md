@@ -5,7 +5,6 @@
 [![GitHubIssues](https://img.shields.io/badge/issue_tracking-github-blue.svg)](https://github.com/samueljackson92/xr-tui/issues)
 [![GitTutorial](https://img.shields.io/badge/PR-Welcome-%23FF8300.svg?)](https://github.com/samueljackson92/xr-tui/pulls)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 ![PyPI - Status](https://img.shields.io/pypi/v/xr-tui)
 
 
