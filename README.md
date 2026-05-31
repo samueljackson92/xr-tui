@@ -20,6 +20,8 @@ xr-tui is an interactive terminal user interface (TUI) for exploring and visuali
 - Easy-to-use command-line interface.
 - Displays dataset statistics and metadata.
 - Handles HDF5 files not formatted as xarray datasets.
+- Interactive table view of raw data values.
+- Export dataset structure as JSON without launching the TUI.
 
 ## Domain Specific Formats
 xr-tui additionally supports domain specific formats such as the HDF5 [NeXus](https://www.nexusformat.org/) format along with any custom xarray backends that supports datatrees. The list of actively supported xarray backends is as follows:
@@ -60,6 +62,13 @@ xr-tui also works with remote datasets accessible via HTTP:
 xr http://example.com/data.zarr
 ```
 
+You can export the dataset structure as JSON without launching the TUI:
+
+```bash
+xr <filename> --export-json            # print to stdout
+xr <filename> --export-json out.json   # write to file
+```
+
 ## Key Command Reference
 
 | Key | Action |
@@ -72,3 +81,4 @@ xr http://example.com/data.zarr
 | `Enter` | Select an item or open a variable |
 | `s` | Show statistics of the selected variable. |
 | `p` | Plot the selected variable. |
+| `t` | Show the selected variable as a scrollable data table. |
