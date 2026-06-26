@@ -8,7 +8,7 @@ import time
 from collections.abc import Mapping
 from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 import numpy as np
@@ -29,6 +29,13 @@ def is_remote_uri(path: str) -> bool:
     """Check if a given path is a remote URI."""
     parsed = urlparse(path)
     return parsed.scheme not in ("", "file")
+
+
+def _normalize_path(path: str) -> Union[str, Path]:
+    """Resolve local paths to an absolute Path; leave remote URIs untouched."""
+    if is_remote_uri(path):
+        return path
+    return Path(path).resolve()
 
 
 def _convert_nbytes_to_readable(nbytes: int) -> str:
@@ -284,16 +291,16 @@ class XarrayTUI(App):
         self.group = group
         self.engine = engine
 
-        self.paths = [Path(p).resolve() for p in path_list]
+        self.paths = [_normalize_path(p) for p in path_list]
 
         if len(self.paths) == 1:
             self._init_single_file(self.paths[0])
         else:
             self._init_multi_file(self.paths)
 
-    def _init_single_file(self, path: Path) -> None:
+    def _init_single_file(self, path: Union[str, Path]) -> None:
         """Load single file xarray or HDF5 datatree"""
-        self.file = str(Path(path).resolve())
+        self.file = str(path)
         self.file_info = _get_file_info(self.file)
 
         try:
@@ -568,7 +575,7 @@ def main():
     args = parser.parse_args()
 
     if args.export_json is not None:
-        paths = [Path(p).resolve() for p in args.path_list]
+        paths = [_normalize_path(p) for p in args.path_list]
 
         if len(paths) == 1:
             file_info = {"file_info": _get_file_info(str(paths[0]))}
