@@ -20,6 +20,7 @@ from textual.widgets import DataTable, Footer, Header, Tree
 from textual_plotext import PlotextPlot
 
 from xr_tui.hdf_reader import hdf5_to_datatree
+from xr_tui.pandas_reader import is_tabular, pandas_to_datatree
 from xr_tui.plotting import ErrorWidget, Plot1DWidget, Plot2DWidget, PlotNDWidget, TableNDWidget
 
 mp.set_start_method("fork")
@@ -303,6 +304,10 @@ class XarrayTUI(App):
         self.file = str(path)
         self.file_info = _get_file_info(self.file)
 
+        if is_tabular(path):
+            self.dataset = pandas_to_datatree(path)
+            return
+
         try:
             self.dataset = xr.open_datatree(
                 path, chunks=None, create_default_indexes=False, engine=self.engine
@@ -579,12 +584,15 @@ def main():
 
         if len(paths) == 1:
             file_info = {"file_info": _get_file_info(str(paths[0]))}
-            try:
-                dataset = xr.open_datatree(
-                    paths[0], chunks=None, create_default_indexes=False, engine=args.engine
-                )
-            except ValueError:
-                dataset = hdf5_to_datatree(paths[0])
+            if is_tabular(paths[0]):
+                dataset = pandas_to_datatree(paths[0])
+            else:
+                try:
+                    dataset = xr.open_datatree(
+                        paths[0], chunks=None, create_default_indexes=False, engine=args.engine
+                    )
+                except ValueError:
+                    dataset = hdf5_to_datatree(paths[0])
         else:
             parent_dirs = list({p.parent for p in paths})
             file_suffixes = list({p.suffix for p in paths})
