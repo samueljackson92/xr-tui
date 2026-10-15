@@ -5,15 +5,16 @@ import json
 import multiprocessing as mp
 import os
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 import numpy as np
 import xarray as xr
 from textual.app import App, ComposeResult
+from textual.binding import BindingType
 from textual.containers import Grid
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Tree
@@ -21,7 +22,13 @@ from textual_plotext import PlotextPlot
 
 from xr_tui.hdf_reader import hdf5_to_datatree
 from xr_tui.pandas_reader import is_tabular, pandas_to_datatree
-from xr_tui.plotting import ErrorWidget, Plot1DWidget, Plot2DWidget, PlotNDWidget, TableNDWidget
+from xr_tui.plotting import (
+    ErrorWidget,
+    Plot1DWidget,
+    Plot2DWidget,
+    PlotNDWidget,
+    TableNDWidget,
+)
 
 mp.set_start_method("fork")
 
@@ -32,7 +39,7 @@ def is_remote_uri(path: str) -> bool:
     return parsed.scheme not in ("", "file")
 
 
-def _normalize_path(path: str) -> Union[str, Path]:
+def _normalize_path(path: str) -> str | Path:
     """Resolve local paths to an absolute Path; leave remote URIs untouched."""
     if is_remote_uri(path):
         return path
@@ -132,7 +139,7 @@ def _group_to_dict(group: xr.DataTree) -> dict:
 class StatisticsScreen(Screen):
     """A screen to display statistics of a variable."""
 
-    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+    BINDINGS: ClassVar[list[BindingType]] = [("escape", "app.pop_screen", "Pop screen")]
 
     def __init__(self, variable: xr.DataArray, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -209,7 +216,7 @@ class StatisticsScreen(Screen):
 class PlotScreen(Screen):
     """A screen to display plots of a 1D, 2D, and ND variables."""
 
-    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+    BINDINGS: ClassVar[list[BindingType]] = [("escape", "app.pop_screen", "Pop screen")]
 
     def __init__(self, variable: xr.DataArray, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -241,7 +248,7 @@ class PlotScreen(Screen):
 class TableScreen(Screen):
     """A screen to display a variable's values as a navigable table."""
 
-    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+    BINDINGS: ClassVar[list[BindingType]] = [("escape", "app.pop_screen", "Pop screen")]
 
     def __init__(self, variable: xr.DataArray, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -263,9 +270,9 @@ class XarrayTUI(App):
 
     CSS_PATH = "xr-tui.tcss"
 
-    SCREENS = {"plot_screen": PlotScreen}
+    SCREENS: ClassVar[dict[str, Callable[[], Screen[Any]]]] = {"plot_screen": PlotScreen}
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         ("q", "quit_app", "Quit"),
         ("e", "expand_all", "Expand all nodes"),
         ("c", "collapse_all", "Collapse all nodes"),
@@ -282,8 +289,8 @@ class XarrayTUI(App):
     def __init__(
         self,
         path_list: list[str],
-        group: Optional[str] = None,
-        engine: Optional[str] = None,
+        group: str | None = None,
+        engine: str | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -299,7 +306,7 @@ class XarrayTUI(App):
         else:
             self._init_multi_file(self.paths)
 
-    def _init_single_file(self, path: Union[str, Path]) -> None:
+    def _init_single_file(self, path: str | Path) -> None:
         """Load single file xarray or HDF5 datatree"""
         self.file = str(path)
         self.file_info = _get_file_info(self.file)
@@ -438,14 +445,14 @@ class XarrayTUI(App):
         """Helper method to add data variable nodes to the tree."""
         data_vars_node = parent_node.add("Data Variables")
         data_vars_node.expand()
-        for var_name in group.data_vars.keys():
+        for var_name in group.data_vars:
             self._add_var_node(data_vars_node, group.data_vars[var_name])
 
     def _add_coords_node(self, parent_node: Tree, group) -> None:
         """Helper method to add coordinate nodes to the tree."""
         coords_node = parent_node.add("Coordinates")
         coords_node.expand()
-        for coord_name in group.coords.keys():
+        for coord_name in group.coords:
             self._add_var_node(coords_node, group.coords[coord_name])
 
     def _add_var_node(self, parent_node: Tree, var: xr.DataArray) -> None:

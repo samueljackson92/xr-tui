@@ -253,7 +253,7 @@ class PlotNDWidget(Widget):
 
     # pylint: disable=too-many-locals
     def _plot_variable_nd(
-        self, dim1: int = 0, dim2: int = 1, slice_positions: dict = None
+        self, dim1: int = 0, dim2: int = 1, slice_positions: dict | None = None
     ) -> PlotextPlot:
         if slice_positions is None:
             slice_positions = {}
