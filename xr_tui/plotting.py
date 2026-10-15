@@ -16,6 +16,21 @@ def format_coord_value(val) -> str:
     return f"{val:.4f}" if isinstance(val, (int, float, np.number)) else str(val)
 
 
+def fill_non_finite(values: np.ndarray) -> np.ndarray:
+    """Replace NaN and +/-Inf with the minimum finite value (or 0 if none).
+
+    plotext normalises matrix colours with the data range. Inf values (or the
+    huge values np.nan_to_num puts in their place) make that range overflow.
+    """
+    if values.dtype.kind != "f":
+        return values
+    finite = np.isfinite(values)
+    if finite.all():
+        return values
+    fill = values[finite].min() if finite.any() else 0.0
+    return np.where(finite, values, fill)
+
+
 class ErrorWidget(Widget):
     """A widget to display plot errors."""
 
@@ -51,7 +66,11 @@ class Plot1DWidget(Widget):
             x_coords = np.arange(self.variable.shape[0])
 
         y_values = self.variable.values
-        y_values = np.nan_to_num(y_values, nan=0.0)
+        if y_values.dtype.kind == "f":
+            # Drop NaN/Inf points: plotext cannot scale an axis to Inf
+            finite = np.isfinite(y_values)
+            x_coords = x_coords[finite]
+            y_values = y_values[finite]
 
         plot_widget = PlotextPlot(id="plot-container")
         plot_widget.plt.plot(x_coords.tolist(), y_values.tolist())
@@ -75,8 +94,7 @@ class Plot2DWidget(Widget):
         x_dim_name = self.variable.dims[1]
         y_dim_name = self.variable.dims[0]
 
-        z = self.variable.values
-        z = np.nan_to_num(z, nan=0.0)
+        z = fill_non_finite(self.variable.values)
 
         # Get coordinate values
         if x_dim_name in self.variable.coords:
@@ -257,8 +275,7 @@ class PlotNDWidget(Widget):
         # Slice the variable to get 2D data
         sliced_var = self.variable.isel(slice_dict)
 
-        z = sliced_var.values
-        z = np.nan_to_num(z, nan=0.0)
+        z = fill_non_finite(sliced_var.values)
 
         # Get coordinate values
         if x_dim_name in sliced_var.coords:
