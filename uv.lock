@@ -2294,7 +2294,7 @@ io = [
 
 [[package]]
 name = "xr-tui"
-version = "0.3.1"
+version = "0.4.1"
 source = { virtual = "." }
 dependencies = [
     { name = "fsspec", extra = ["s3"] },
