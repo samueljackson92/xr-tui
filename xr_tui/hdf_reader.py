@@ -90,7 +90,7 @@ def hdf5_group_to_datatree(name, group, file):
     )
 
 
-def hdf5_to_datatree(path, group: str = None) -> xr.DataTree:
+def hdf5_to_datatree(path, group: str | None = None) -> xr.DataTree:
     """Read HDF5 file into a hierarchical DataTree with reference resolution."""
     with h5py.File(path, "r") as f:
         tree = hdf5_group_to_datatree("root", f, f)
